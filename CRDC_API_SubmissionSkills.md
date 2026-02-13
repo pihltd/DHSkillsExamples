@@ -58,11 +58,16 @@ def apiQuery(tier, query, variables):
         return(f"HTTP Error: {e}")
 ```
 
-### Pagination Note
-Most of queries that return results are paginated and need to be checked to make sure all results are retrived.  The number of available results from a query is found in the **total** field that can be returned if requested and pagination can be done using the **first** and **offest** fields in queries.  We won't be highlighting pagination in this notebook, but it can be a critical tool for fully understanding your submissions.  If the **first** field is not included in a query, the system defaults to returning the first 10 results.
+### Pagination and Sorting Note
+Most of queries that return results can paginated, which is useful when trying to retrieve large numbers of restuls.  The number of available results from a query is found in the **total** field that can be returned if requested and pagination can be done using the **first** and **offest** fields in queries.  If the **first** field is not included in a query, the system defaults to returning the first 10 results.  In addition, results can be sorted by ascending or descending values in any returned field
 
-- **first**: The number of records to be returned.  If first is set to -1, the API will return all results.
-- **offset**: The number of records to be skipped when returning results.
+| Field | Description |
+|------------------------|-----------------------------------------------------------------------------------|
+| **first** | The number of records to be returned.  If first is set to -1, the API will return all results |
+| **offset** | The number of records to be skipped when returning results. |
+| **sortDirection** | Can be either *asc* or *desc* to sort using the column indicated in *orderBy* |
+| **orderBy** | The field to use in sorting |
+
 
 ### Step 1: Understanding what studies are available
 Each user will have a different set of sudies they are allowed to submit to.  The API *getMyUser* query will return a list of studies that are available.  This query requires no variables to run.
@@ -119,11 +124,14 @@ mutation CreateNewSubmission(
 ```
 
 There are multiple required variables that have to be provided in a GraphQL compatible way:
-- **studyID**:  This is the assigned Study ID that can be obtained from the **_id** field in the *getMyUser* query
-- **dataCommons**: This is the CRDC Data Commons the submissions will be deposited into
-- **name**: This can be anything that allows you to identify this specific submission
-- **intention**: Can be *New/Update* if you are adding information to the submission or  *Delete* if you are removing information from an earlier, completed submission
-- **dataType**: Can be either *Metadata and Data Files* or *Metadata Only*.  Which one is selected depends on whether or not data files will be included in the submission
+
+| Field | Description |
+|------------------------|-----------------------------------------------------------------------------------|
+| **studyID** |  This is the assigned Study ID that can be obtained from the **_id** field in the *getMyUser* query |
+| **dataCommons** | This is the CRDC Data Commons where the submissions will be deposited |
+| **name** | This can be anything that allows you to identify this specific submission.  This name is not used outside of the submission process |
+| **intention** | Can be *New/Update* if you are adding information to the submission or  *Delete* if you are removing information from an earlier, completed submission |
+| **dataType** | Can be either *Metadata and Data Files* or *Metadata Only*.  Which one is selected depends on whether or not data files will be included in the submission |
 
   This query will return the **_id** field which will be the newly created submission ID. It will also return a number of other fields that can be checked to make sure the submission was created properly
 
@@ -149,11 +157,10 @@ The listSubmissions query requires that **status** be provided as a parameter.  
 - Withdrawn
 - Deleted
 
-**All** returns all submission statuses.
 
 Details about what each of these states means can be found in the Submission Documentation.  For most submitters, the important states are **New**, **In Progress**, and **Submitted** as those will be the states that allow work to be done on the submission.
-This allows for queries to bring back information about a specific state.
-For long lists, the *listSubmissions* query also allows the list to be pagniated using the **first** and **offset** fields and sorted in ascending or descending order with the **sortDirection** field, and to request a sorting order by field with the **orderBy** field.  Please see the API documentation for additional information
+
+The *listSubmissions* query also allows the list to be pagniated using the **first** and **offset** fields and sorted in ascending or descending order with the **sortDirection** field, and to request a sorting order by field with the **orderBy** field. \
 
 ```graphql
     query ListSubmissions(
@@ -216,11 +223,13 @@ mutation CreateBatch(
 }
 ```
 
-There are several variables that need to be set as part of this quesry
+There are several variables that need to be set as part of this query
 
-- **submissionID**: This is the submission ID obtained in Step 2.
-- **type**: This is the type of upload and since data files cannot be uploaded via the API, this should be set to *metadata*
-- **fileName**: This is a list of the filenames that will be uploaded.  This should be just the file name, the path should not be included.
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **submissionID** | This is the submission ID obtained in Step 2 |
+| **type**| This is the type of upload and since data files cannot be uploaded via the API, this should be set to *metadata* |
+| **fileName** | This is a list of the filenames that will be uploaded.  This should be just the file name, the path should not be included |
 
 There are two critical fields in the returned data, *_id* and the *files* group.  In this case, *_id* is the **batch** id and for each file in the submitted *filename* list, there should be the filename and a signed URL.
 
@@ -264,10 +273,13 @@ def processFilesForUpload(metadatafilelist, datadir, batch_creation_results):
 ```
 
 This function will process the result returned from the *createBatch* query that was run previously and parse out the file name and the signed URL.  These are then used in conjunction with the upload function immediately above to upload the metadata submission file to the API. The function then parses the information returned from the file upload to create an *UploadResult* objec which consists of:
-- **fileName**: The name of the file as returned by the upload process
-- **succeeded**: Boolean indicating if the upload succeeded (True) or failed (False)
-- **errors**: This should be set to an empty list
-- **skipped**: This should be set to False
+
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **fileName** | The name of the file as returned by the upload process |
+| **succeeded** | Boolean indicating if the upload succeeded (True) or failed (False) |
+| **errors** | This should be set to an empty list |
+| **skipped** | This should be set to False |
 
 An entrey for each file should be created and aggregated into a list.
 
@@ -328,9 +340,12 @@ mutation ValidateSubmission(
 ```
 
 This mutation takes three variables:
-- **id**: This must be a valid **submission ID**, not a batch ID.
-- **types**: This list should include *metadata* to validate metadata submission files, or *data* to validate uploaded data files.  Both can be included in the list to run both validations.
-- **scope**: Set to *New* to validate only files that have not been previously validated, or *All* to validate all files regardless of previous validations.
+
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **id** | This must be a valid **submission ID**, not a batch ID |
+| **types** | This list should include *metadata* to validate metadata submission files, or *data* to validate uploaded data files.  Both can be included in the list to run both validations |
+| **scope** | Set to *New* to validate only files that have not been previously validated, or *All* to validate all files regardless of previous validations |
 
 The returned *success* field does *not* indicate the success or failure of the validation, it only indicates whether or not the validation process has successfully been started.
 
@@ -375,13 +390,14 @@ query SummaryQueryQCResults(
 
 This query takes two main parameters plus pagination parameters:
 
-- **submissionID**: The submission ID for the submission being validated
-- **severity**: The type of error to return.  Can be set to *Error*, *Warnings*, or *All* which wil return both error and warnings.
-The remaining variables are used for pagniation:
-- **first**: The number of the first record to be returned.  Setting first to *-1* will return all records.
-- **offset**: The number of records to return
-- **orderBy**: The field to use in sorting
-- **sortDirection**: Can be either *asc* or *desc* to sort using the column indicated in *orderBy*.
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **submissionID** | The submission ID for the submission being validated |
+| **severity** | The type of error to return.  Can be set to *Error*, *Warnings*, or *All* which wil return both error and warnings |
+| **first** | The number of the first record to be returned.  Setting first to *-1* will return all records |
+| **offset** | The number of records to return |
+| **orderBy** | The field to use in sorting |
+| **sortDirection** | Can be either *asc* or *desc* to sort using the column indicated in *orderBy* |
 
 An example variable could look like this:
 
@@ -445,14 +461,15 @@ query DetailedQueryQCResults(
 
 This query takes two main parameters plus pagination parameters.  This also can take an issueCode as a parameter, which allows filtering to specifc types of errors:
 
-- **submissionID**: The submission ID for the submission being validated
-- **severity**: The type of error to return.  Can be set to *Error*, *Warnings*, or *All* which wil return both error and warnings.
-- **issueCode**: This can be obtained from the summary query above and if provided will limit the information returned to just the errors in the provided issueCode.
-The remaining variables are used for pagniation:
-- **first**: The number of the first record to be returned.  Setting first to *-1* will return all records.
-- **offset**: The number of records to return
-- **orderBy**: The field to use in sorting
-- **sortDirection**: Can be either *asc* or *desc* to sort using the column indicated in *orderBy*.
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **submissionID** | The submission ID for the submission being validated |
+| **severity** | The type of error to return.  Can be set to *Error*, *Warnings*, or *All* which wil return both error and warnings |
+| **issueCode** | This can be obtained from the summary query above and if provided will limit the information returned to just the errors in the provided issueCode |
+| **first** | The number of the first record to be returned.  Setting first to *-1* will return all records |
+| **offset** | The number of records to return |
+| **orderBy** | The field to use in sorting |
+| **sortDirection** | Can be either *asc* or *desc* to sort using the column indicated in *orderBy* |
 
 An example of the variables is shown below:
 
@@ -492,6 +509,8 @@ mutation Submit(
 ```
 
 The variable that are required for this mutation are:
-- **id**: The submission ID
-- **action**: Must be one of *Submit*, *Withdraw*, or *Cancel*.  Be sure to understand each option before sending the query.
-- **comment**: This is a free-text comment field in case additional information needs to be provided to the CRDC.
+| Field | Description |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------|
+| **id** | The submission ID |
+| **action** | Must be one of *Submit*, *Withdraw*, or *Cancel*.  Be sure to understand each option before sending the query |
+| **comment**| This is a free-text comment field in case additional information needs to be provided to the CRDC |
