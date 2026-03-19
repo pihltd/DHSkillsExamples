@@ -21,13 +21,17 @@ If you are an approved submitter with a Login.gov or NIH account, you can genera
 - The token is tied to your user identity and can be used on any submission that you're approved to work on.
 - You can have only one token at a time.  Generating a new token will revoke the previous token.
 
-### API Documentation
+### API Documentation 
 Documentation (pdf format) of all API queries is maintained on the [Submission Portal](https://hub.datacommons.cancer.gov/CRDC_Data_Submission_API_Instructions.pdf)
 Additional instructions and details (pdf format) on the submission process are [also available](https://datacommons.cancer.gov/data-submission-instructions)
 
 ## Submission Process
 ### Query submission code
 The Submission Portal API uses GraphQL and eny language capable of sending GraphQL queries to the endpoint is suitable.  In this document we will use Python, and below is an example of how to use Python to communicate with the API endpoint using the Python *requests* library.
+#### Important notes:
+- All queries must be a post query.
+- Authentication is done with a Bearer token format using the API token that was previously obtained.
+- All results are returned on JSON format and the exact content depends on what the query elects to return.
 
 ```python
 import requests
